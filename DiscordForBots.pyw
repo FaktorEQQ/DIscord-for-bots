@@ -4,12 +4,22 @@ from tkinter import Menu
 import requests
 from io import BytesIO
 from PIL import Image
+import os
 
 
 def login():
     window_login = ctk.CTk()
     window_login.title("Discord for bots | Login")
-    #window_login.iconbitmap("icon.ico")
+
+    icon_directory = f"{os.environ['USERPROFILE']}\Discord for bots"
+    icon = requests.get("https://raw.githubusercontent.com/FaktorEQQ/DIscord-for-bots/main/icon.ico").content
+    if not os.path.exists(icon_directory):
+        os.makedirs(icon_directory)
+        with open(f"{icon_directory}\icon.ico", "wb") as file:
+            file.write(icon)
+    window_login.iconbitmap(f"{icon_directory}\icon.ico")
+
+
     window_login.geometry("500x150")
     window_login.resizable(False, False)
 
@@ -41,7 +51,15 @@ def login():
 def program(token):
     window_program = ctk.CTk()
     window_program.title("Discord for bots")
-    #window_program.iconbitmap("icon.ico")
+
+    icon_directory = f"{os.environ['USERPROFILE']}\Discord for bots"
+    icon = requests.get("https://raw.githubusercontent.com/FaktorEQQ/DIscord-for-bots/main/icon.ico").content
+    if not os.path.exists(icon_directory):
+        os.makedirs(icon_directory)
+        with open(f"{icon_directory}\icon.ico", "wb") as file:
+            file.write(icon)
+    window_program.iconbitmap(f"{icon_directory}\icon.ico")
+
     window_program.geometry("962x982")
     window_program.resizable(False, False)
 
