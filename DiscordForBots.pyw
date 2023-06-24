@@ -106,8 +106,12 @@ def program(token):
         messages_data = requests.get(f"https://discord.com/api/v10/channels/{channel_id}/messages", headers={"Authorization":f"Bot {token}"}).json()
         for message in messages_data:
             try:
-                if not message["author"]["global_name"] == None:
-                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['global_name']} | {message['content']}")
+                if message["content"]:
+                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | {message['content']}")
+                    button.bind("<Button-1>", lambda e,channel_id=channel_id,message_id=message["id"],message_button=button: create_menu_message(e, channel_id=channel_id, message_id=message_id, message_button=message_button))
+                    button.pack(side="bottom")
+                else:
+                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | No content")
                     button.bind("<Button-1>", lambda e,channel_id=channel_id,message_id=message["id"],message_button=button: create_menu_message(e, channel_id=channel_id, message_id=message_id, message_button=message_button))
                     button.pack(side="bottom")
             except:
