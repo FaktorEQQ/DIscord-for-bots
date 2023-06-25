@@ -64,33 +64,37 @@ def program(token):
     window_program.resizable(False, False)
 
 
-    guilds_frame = ctk.CTkFrame(window_program, width=75, height=982, fg_color="#242424")
+    guilds_frame = ctk.CTkScrollableFrame(window_program, width=75, height=982, fg_color="#242424")
     guilds_frame.pack_propagate(0)
-    guilds_frame.pack(side="left")
+    guilds_frame.pack(side="left", fill="y")
 
-    guild_name_frame = ctk.CTkFrame(window_program, width=240, height=50, fg_color="#2b2d31", bg_color="#242424")
+    guild_name_frame = ctk.CTkFrame(window_program, width=260, height=50, fg_color="#2b2d31", bg_color="#242424")
     guild_name_frame.pack_propagate(0)
-    guild_name_frame.place(anchor="nw", relx=0.080)
+    guild_name_frame.place(anchor="nw", relx=0.1)
     guild_name_label = ctk.CTkLabel(guild_name_frame, text="", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
     guild_name_label.pack(expand=True)
 
-    channels_frame = ctk.CTkFrame(window_program, width=240, height=932, fg_color="#2b2d31")
+    channels_frame = ctk.CTkScrollableFrame(window_program, width=240, height=932, fg_color="#2b2d31")
     channels_frame.pack_propagate(0)
     channels_frame.pack(side="left", anchor="s")
 
-    channel_name_frame = ctk.CTkFrame(window_program, width=400, height=50, fg_color="#313338")
+    channel_name_frame = ctk.CTkFrame(window_program, width=420, height=50, fg_color="#313338")
     channel_name_frame.pack_propagate(0)
     channel_name_frame.pack(side="left", anchor="n")
     channel_name_label = ctk.CTkLabel(channel_name_frame, text="", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
     channel_name_label.pack(expand=True)
 
-    messages_frame = ctk.CTkFrame(window_program, width=400, height=832, fg_color="#313338")
+    messages_frame = ctk.CTkScrollableFrame(window_program, width=400, height=832, fg_color="#313338")
     messages_frame.pack_propagate(0)
-    messages_frame.place(anchor="s", relx=0.535, rely=0.90)
+    messages_frame.place(anchor="s", relx=0.590, rely=0.90)
 
-    send_message_frame = ctk.CTkFrame(window_program, width=400, height=100, fg_color="#383a40")
+    send_message_frame = ctk.CTkFrame(window_program, width=420, height=100, fg_color="#383a40")
     send_message_frame.pack_propagate(0)
-    send_message_frame.place(anchor="s", relx=0.535, rely=1.0)
+    send_message_frame.place(anchor="s", relx=0.590, rely=1.0)
+
+    members_frame = ctk.CTkScrollableFrame(window_program, width=160, height=982, fg_color="#2b2d31")
+    members_frame.pack_propagate(0)
+    members_frame.pack(side="right", fill="y")
 
 
     def create_menu_message(e, channel_id, message_id, message_button):
@@ -103,11 +107,17 @@ def program(token):
                 CTkMessagebox(title="Error", message="Message not deleted!", icon="cancel")
             except:
                 message_button.destroy()
+
         def pin_message():
             requests.put(f"https://discord.com/api/v10/channels/{channel_id}/pins/{message_id}", headers={"Authorization":f"Bot {token}"})
 
+        def copy_id():
+            window_program.clipboard_clear()
+            window_program.clipboard_append(message_id)
+
         menu.add_command(label="Delete message", command=delete_message)
         menu.add_command(label="Pin message", command=pin_message)
+        menu.add_command(label="Copy ID", command=copy_id)
         menu.tk_popup(x=e.x_root, y=e.y_root)
 
 
@@ -122,35 +132,35 @@ def program(token):
 
 
         messages_data = requests.get(f"https://discord.com/api/v10/channels/{channel_id}/messages", headers={"Authorization":f"Bot {token}"}).json()
-        for message in messages_data:
+        for message in reversed(messages_data):
             try:
                 if message["content"]:
-                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | {message['content']}")
+                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | {message['content']}", width=400, anchor="w")
                     button.bind("<Button-1>", lambda e,channel_id=channel_id,message_id=message["id"],message_button=button: create_menu_message(e, channel_id=channel_id, message_id=message_id, message_button=message_button))
-                    button.pack(side="bottom")
+                    button.grid(sticky="ew")
                 else:
-                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | No content")
+                    button = ctk.CTkButton(messages_frame, text=f"{message['author']['username']} | No content", width=400, anchor="w")
                     button.bind("<Button-1>", lambda e,channel_id=channel_id,message_id=message["id"],message_button=button: create_menu_message(e, channel_id=channel_id, message_id=message_id, message_button=message_button))
-                    button.pack(side="bottom")
+                    button.grid(sticky="ew")
             except:
                 None
 
         content_entry = ctk.CTkEntry(send_message_frame, width=350, height=28)
-        content_entry.pack(expand=True)
+        content_entry.grid(sticky="NSEW")
 
         def send_callback():
             try:
                 req = requests.post(f"https://discord.com/api/v10/channels/{channel_id}/messages", headers={"Authorization":f"Bot {token}"}, data={"content":content_entry.get()}).json()
                 req["id"]
 
-                created_btn = ctk.CTkButton(messages_frame, text=f"{req['author']['username']} | {req['content']}")
+                created_btn = ctk.CTkButton(messages_frame, text=f"{req['author']['username']} | {req['content']}", width=400, anchor="w")
                 created_btn.bind("<Button-1>", lambda e,channel_id=channel_id,message_id=req["id"],message_button=created_btn: create_menu_message(e, channel_id=channel_id, message_id=message_id, message_button=message_button))
-                created_btn.pack(side="bottom")
+                created_btn.grid(sticky="ew")
             except:
                 CTkMessagebox(title="Error", message="No message sent!", icon="cancel")
 
         send_message_button = ctk.CTkButton(send_message_frame, text="Send", command=send_callback)
-        send_message_button.pack(expand=True)
+        send_message_button.grid(sticky="NSEW")
 
 
 
@@ -159,13 +169,22 @@ def program(token):
 
         for btn in channels_frame.winfo_children():
             btn.destroy()
+
+        for btn in members_frame.winfo_children():
+            btn.destroy()
+
+        
+        members_data = requests.get(f"https://discord.com/api/v10/guilds/{guild['id']}/members?limit=50", headers={"Authorization":f"Bot {token}"}).json()
+        for member in members_data:
+            button = ctk.CTkButton(members_frame, text=member["user"]["username"], fg_color="#2b2d31", width=160)
+            button.grid(sticky="NSEW")
         
         
         channels_data = requests.get(f"https://discord.com/api/v10/guilds/{guild['id']}/channels", headers={"Authorization":f"Bot {token}"}).json()
         for channel in channels_data:
             if channel["type"] == 0:
-                button = ctk.CTkButton(channels_frame, text=f"#{channel['name']}", command=lambda channel_id=channel["id"],channel_name=channel["name"]: create_message_buttons(channel_id=channel_id, channel_name=channel_name), fg_color="#2b2d31")
-                button.pack()
+                button = ctk.CTkButton(channels_frame, text=f"#{channel['name']}", command=lambda channel_id=channel["id"],channel_name=channel["name"]: create_message_buttons(channel_id=channel_id, channel_name=channel_name), fg_color="#2b2d31", width=240)
+                button.grid(sticky="NSEW")
 
 
     def create_guild_images(guild):
@@ -175,11 +194,11 @@ def program(token):
             image = image.resize((75, 75))
             image_tk = ctk.CTkImage(image)
 
-            label = ctk.CTkButton(guilds_frame, text="", image=image_tk, width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
-            label.pack()
+            button = ctk.CTkButton(guilds_frame, text="", image=image_tk, width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
+            button.grid()
         else:
-            label = ctk.CTkButton(guilds_frame, text=guild["name"].split()[0], width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
-            label.pack()
+            button = ctk.CTkButton(guilds_frame, text=guild["name"].split()[0], width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
+            button.grid()
 
     guilds_data = requests.get("https://discord.com/api/v10/users/@me/guilds", headers={"Authorization":f"Bot {token}"}).json()
     for guild in guilds_data:
