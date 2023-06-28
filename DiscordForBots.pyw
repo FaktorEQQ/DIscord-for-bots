@@ -375,20 +375,25 @@ def program(token):
             btn.destroy()
 
         
+        
+        
+        channels_data = requests.get(f"https://discord.com/api/v10/guilds/{guild['id']}/channels", headers={"Authorization":f"Bot {token}"}).json()
+        for channel in channels_data:
+            if channel["type"] == 0:
+                if len(channel["name"]) > 60:
+                    button = ctk.CTkButton(channels_frame, text=f"#{channel['name'][:60]+'...'}", command=lambda channel_id=channel["id"],channel_name=channel["name"]: create_message_buttons(channel_id=channel_id, channel_name=channel_name), fg_color="#2b2d31", width=240)
+                else:
+                    button = ctk.CTkButton(channels_frame, text=f"#{channel['name']}", command=lambda channel_id=channel["id"],channel_name=channel["name"]: create_message_buttons(channel_id=channel_id, channel_name=channel_name), fg_color="#2b2d31", width=240)
+                button.bind("<Button-3>", lambda e,channel_data=channel,channel_button=button: create_menu_channel(e, channel_data=channel_data, channel_button=channel_button))
+                button.grid(sticky="NSEW")
+                
+
         members_data = requests.get(f"https://discord.com/api/v10/guilds/{guild['id']}/members?limit=50", headers={"Authorization":f"Bot {token}"}).json()
         for member in members_data:
             button = ctk.CTkButton(members_frame, text=member["user"]["username"], fg_color="#2b2d31", width=160)
             button.bind("<Button-1>", lambda e,member_data=member: create_profile_frame(e, member_data=member_data))
             button.bind("<Button-3>", lambda e,member_id=member["user"]["id"], guild_id=guild["id"], member_button=button: create_menu_member(e, member_id=member_id, guild_id=guild_id, member_button=member_button))
             button.grid(sticky="NSEW")
-        
-        
-        channels_data = requests.get(f"https://discord.com/api/v10/guilds/{guild['id']}/channels", headers={"Authorization":f"Bot {token}"}).json()
-        for channel in channels_data:
-            if channel["type"] == 0:
-                button = ctk.CTkButton(channels_frame, text=f"#{channel['name']}", command=lambda channel_id=channel["id"],channel_name=channel["name"]: create_message_buttons(channel_id=channel_id, channel_name=channel_name), fg_color="#2b2d31", width=240)
-                button.bind("<Button-3>", lambda e,channel_data=channel,channel_button=button: create_menu_channel(e, channel_data=channel_data, channel_button=channel_button))
-                button.grid(sticky="NSEW")
 
 
     def create_guild_images(guild):
@@ -401,7 +406,10 @@ def program(token):
             button.bind("<Button-3>", lambda e,guild_data=guild,guild_button=button: create_menu_guild(e, guild_data=guild_data, guild_button=guild_button))
             button.grid()
         else:
-            button = ctk.CTkButton(guilds_frame, text=guild["name"].split()[0], width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
+            if len(guild["name"].split()[0]) > 10:
+                button = ctk.CTkButton(guilds_frame, text=guild["name"].split()[0][:10]+"...", width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
+            else:
+                button = ctk.CTkButton(guilds_frame, text=guild["name"].split()[0], width=75, height=75, command=lambda guild=guild:create_channel_buttons(guild=guild), fg_color="#242424")
             button.bind("<Button-3>", lambda e,guild_data=guild,guild_button=button: create_menu_guild(e, guild_data=guild_data, guild_button=guild_button))
             button.grid()
 
