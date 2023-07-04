@@ -117,7 +117,7 @@ def program(token):
 
     def check_version():
         req = requests.get("https://api.github.com/repos/FaktorEQQ/Discord-for-bots/releases/latest").json()
-        app_version = "1-version"
+        app_version = "2-version"
         if not req["tag_name"] == app_version:
             frame = ctk.CTkFrame(window_program, width=650, height=200)
             frame.pack_propagate(0)
@@ -139,44 +139,153 @@ def program(token):
             button_later.pack(side="left")
     check_version()
 
+    def create_menu_role(e, guild_id, role_id, role_button):
+        menu = Menu(window_program, tearoff=False)
+
+        def delete_role():
+            req = requests.delete(f"https://discord.com/api/v10/guilds/{guild_id}/roles/{role_id}", headers={"Authorization":f"Bot {token}"}).json()
+            try:
+                req["message"]
+                CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+            except:
+                role_button.destroy()
+        
+        def copy_id():
+            window_program.clipboard_clear()
+            window_program.clipboard_append(role_id)
+        
+        menu.add_command(label="Delete role", command=delete_role)
+        menu.add_command(label="Copy ID", command=copy_id)
+        menu.tk_popup(x=e.x_root, y=e.y_root)
+
 
     def create_menu_channel(e, channel_data, channel_button):
         menu = Menu(window_program, tearoff=False)
+
+        def channel_settings():
+            frame = ctk.CTkFrame(window_program, width=962, height=982)
+            frame.pack_propagate(0)
+            frame.place(relx=0.5, rely=0.5, anchor="center")
+
+            def button_close_callback():
+                frame.destroy()
+        
+            button_close = ctk.CTkButton(frame, text="X", fg_color="red", command=button_close_callback, width=50, height=30, font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+            button_close.pack(anchor="ne")
+
+            options_frame = ctk.CTkScrollableFrame(frame, width=200, height=952, fg_color="#2b2d31")
+            options_frame.pack_propagate(0)
+            options_frame.pack(side="left", anchor="s")
+
+            settings_frame = ctk.CTkScrollableFrame(frame, width=792, height=952, fg_color="#313338")
+            settings_frame.pack_propagate(0)
+            settings_frame.pack(side="right", anchor="s")
+            settings_frame.columnconfigure(0, weight=1)
+
+            def button_overview_callback():
+                for item in settings_frame.winfo_children():
+                    item.destroy()
+
+                channel_name_label = ctk.CTkLabel(settings_frame, text="Channel name", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                channel_name_label.grid()
+                channel_name_entry = ctk.CTkEntry(settings_frame, width=500, height=20, font=ctk.CTkFont(family="Arial", size=20), fg_color="#1e1f22")
+                channel_name_entry.insert(0, channel_data["name"])
+                channel_name_entry.grid()
+
+                def change_name_callback():
+                    req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"name":channel_name_entry.get()}, headers={"Authorization":f"Bot {token}"}).json()
+                    try:
+                        req["message"]
+                        CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+                    except:
+                        channel_button.configure(text=f"#{channel_name_entry.get()}")
+
+                change_name_button = ctk.CTkButton(settings_frame, text="Change channel name", command=change_name_callback)
+                change_name_button.grid()
+
+                channel_topic_label = ctk.CTkLabel(settings_frame, text="Channel topic", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                channel_topic_label.grid()
+                channel_topic_textbox = ctk.CTkTextbox(settings_frame, font=ctk.CTkFont(family="Arial", size=15), width=500, height=75, fg_color="#1e1f22")
+                if channel_data["topic"]:
+                    channel_topic_textbox.insert("1.0", channel_data["topic"])
+                channel_topic_textbox.grid()
+
+                def change_topic_callback():
+                    req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"topic":channel_topic_textbox.get("1.0", "end-1c")}, headers={"Authorization":f"Bot {token}"}).json()
+                    try:
+                        req["message"]
+                        CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+                    except:
+                        None
+
+                change_topic_button = ctk.CTkButton(settings_frame, text="Change channel topic", command=change_topic_callback)
+                change_topic_button.grid()
+
+                channel_slowmode_label = ctk.CTkLabel(settings_frame, text="Slowmode", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                channel_slowmode_label.grid()
+                if channel_data["rate_limit_per_user"] == 0:
+                    channel_slowmode_count_label = ctk.CTkLabel(settings_frame, text="Off")
+                else:
+                    channel_slowmode_count_label = ctk.CTkLabel(settings_frame, text=f"{channel_data['rate_limit_per_user']}s")
+                channel_slowmode_count_label.grid()
+                slowmode_options = {"Off":0, "5s":5, "10s":10, "15s":15, "30s":30, "1m":60, "2m":120, "5m":300, "10m":600, "15m":900, "30m":1800, "1h":3600, "2h":7200, "6h":21600}
+                def slowmode_slider_callback(value):
+                    value = list(slowmode_options.keys())[int(value)]
+                    channel_slowmode_count_label.configure(text=value)
+                channel_slowmode_slider = ctk.CTkSlider(settings_frame, from_=0, to=13, number_of_steps=13, width=500, command=slowmode_slider_callback)
+                channel_slowmode_slider.grid()
+
+                def change_slowmode_callback():
+                    value = list(slowmode_options.keys())[int(channel_slowmode_slider.get())]
+                    slow_mode_time = slowmode_options[value]
+                    req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"rate_limit_per_user":slow_mode_time}, headers={"Authorization":f"Bot {token}"}).json()
+                    try:
+                        req["message"]
+                        CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+                    except:
+                        None
+
+                change_slowmode_button = ctk.CTkButton(settings_frame, text="Change channel slowmode", command=change_slowmode_callback)
+                change_slowmode_button.grid()
+
+                channel_nsfw_label = ctk.CTkLabel(settings_frame, text="Nsfw", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                channel_nsfw_label.grid()
+                def nsfw_switch_callback():
+                    if channel_nsfw_switch.get() == 1:
+                        channel_nsfw_switch.configure(text="On")
+                    else:
+                        channel_nsfw_switch.configure(text="Off")
+                channel_nsfw_switch = ctk.CTkSwitch(settings_frame, command=nsfw_switch_callback)
+                if channel_data["nsfw"]:
+                    channel_nsfw_switch.select()
+                    channel_nsfw_switch.configure(text="On")
+                else:
+                    channel_nsfw_switch.deselect()
+                    channel_nsfw_switch.configure(text="Off")
+                channel_nsfw_switch.grid()
+                def change_nsfw_callback():
+                    if channel_nsfw_switch.get() == 1:
+                        req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"nsfw":True}, headers={"Authorization":f"Bot {token}"}).json()
+                    else:
+                        req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"nsfw":False}, headers={"Authorization":f"Bot {token}"}).json()
+                    try:
+                        req["message"]
+                        CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+                    except:
+                        None
+                change_nsfw_button = ctk.CTkButton(settings_frame, text="Change channel nsfw", command=change_nsfw_callback)
+                change_nsfw_button.grid()
+
+            button_overview = ctk.CTkButton(options_frame, text="Overview", fg_color="#2b2d31", command=button_overview_callback, width=200, height=50, font=ctk.CTkFont(family="Arial", size=15))
+            button_overview.grid()
+
+            button_overview_callback()
 
         def copy_id():
             window_program.clipboard_clear()
             window_program.clipboard_append(channel_data["id"])
 
-        def edit_channel():
-            settings_frame = ctk.CTkFrame(window_program, width=962, height=982)
-            settings_frame.pack_propagate(0)
-            settings_frame.place(relx=0.5, rely=0.5, anchor="center")
-
-            def button_close_callback():
-                settings_frame.destroy()
-        
-            button_close = ctk.CTkButton(settings_frame, text="X", fg_color="red", command=button_close_callback, width=50, height=30, font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
-            button_close.pack(anchor="ne")
-
-
-            channel_name_label = ctk.CTkLabel(settings_frame, text="Channel name", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
-            channel_name_label.pack()
-
-            channel_name_entry = ctk.CTkEntry(settings_frame, placeholder_text=channel_data["name"], width=200, height=20, font=ctk.CTkFont(family="Arial", size=20))
-            channel_name_entry.pack()
-
-            def change_name_callback():
-                req = requests.patch(f"https://discord.com/api/v10/channels/{channel_data['id']}", json={"name":channel_name_entry.get()}, headers={"Authorization":f"Bot {token}"}).json()
-                try:
-                    req["message"]
-                    CTkMessagebox(title="Error", message=req["message"], icon="cancel")
-                except:
-                    channel_button.configure(text=f"#{channel_name_entry.get()}")
-
-            change_name_button = ctk.CTkButton(settings_frame, text="Change channel name", command=change_name_callback)
-            change_name_button.pack()
-
-        menu.add_command(label="Edit channel", command=edit_channel)
+        menu.add_command(label="Edit channel", command=channel_settings)
         menu.add_command(label="Copy ID", command=copy_id)
         menu.tk_popup(x=e.x_root, y=e.y_root)
 
@@ -185,34 +294,117 @@ def program(token):
         menu = Menu(guilds_frame, tearoff=False)
 
         def server_settings():
-            settings_frame = ctk.CTkFrame(window_program, width=962, height=982)
-            settings_frame.pack_propagate(0)
-            settings_frame.place(relx=0.5, rely=0.5, anchor="center")
+            frame = ctk.CTkFrame(window_program, width=962, height=982)
+            frame.pack_propagate(0)
+            frame.place(relx=0.5, rely=0.5, anchor="center")
 
             def button_close_callback():
-                settings_frame.destroy()
+                frame.destroy()
         
-            button_close = ctk.CTkButton(settings_frame, text="X", fg_color="red", command=button_close_callback, width=50, height=30, font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+            button_close = ctk.CTkButton(frame, text="X", fg_color="red", command=button_close_callback, width=50, height=30, font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
             button_close.pack(anchor="ne")
 
 
-            guild_name_label = ctk.CTkLabel(settings_frame, text="Server name", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
-            guild_name_label.pack()
-            guild_name_entry = ctk.CTkEntry(settings_frame, placeholder_text=guild_data["name"], width=200, height=20, font=ctk.CTkFont(family="Arial", size=20))
-            guild_name_entry.pack()
+            options_frame = ctk.CTkScrollableFrame(frame, width=200, height=952, fg_color="#2b2d31")
+            options_frame.pack_propagate(0)
+            options_frame.pack(side="left", anchor="s")
 
-            def change_name_callback():
-                req = requests.patch(f"https://discord.com/api/v10/guilds/{guild_data['id']}", json={"name":guild_name_entry.get()}, headers={"Authorization":f"Bot {token}"}).json()
-                try:
-                    req["message"]
-                    CTkMessagebox(title="Error", message=req["message"], icon="cancel")
-                except:
-                    if guild_button:
-                        if not guild_button.cget("image"):
-                            guild_button.configure(text=guild_name_entry.get())
+            settings_frame = ctk.CTkScrollableFrame(frame, width=792, height=952, fg_color="#313338")
+            settings_frame.pack_propagate(0)
+            settings_frame.pack(side="right", anchor="s")
+            settings_frame.columnconfigure(0, weight=1)
 
-            change_name_button = ctk.CTkButton(settings_frame, text="Change server name", command=change_name_callback)
-            change_name_button.pack()
+            def button_overview_callback():
+                for item in settings_frame.winfo_children():
+                    item.destroy()
+
+                guild_name_label = ctk.CTkLabel(settings_frame, text="Server name", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                guild_name_label.grid()
+
+                guild_name_entry = ctk.CTkEntry(settings_frame, width=500, height=20, font=ctk.CTkFont(family="Arial", size=20), fg_color="#1e1f22")
+                guild_name_entry.insert(0, guild_data["name"])
+                guild_name_entry.grid()
+
+                def change_name_callback():
+                    req = requests.patch(f"https://discord.com/api/v10/guilds/{guild_data['id']}", json={"name":guild_name_entry.get()}, headers={"Authorization":f"Bot {token}"}).json()
+                    try:
+                        req["message"]
+                        CTkMessagebox(title="Error", message=req["message"], icon="cancel")
+                    except:
+                        if guild_button:
+                            if not guild_button.cget("image"):
+                                guild_button.configure(text=guild_name_entry.get())
+
+                change_name_button = ctk.CTkButton(settings_frame, text="Change server name", command=change_name_callback)
+                change_name_button.grid()
+
+            def button_roles_callback():
+                for item in settings_frame.winfo_children():
+                    item.destroy()
+
+                req = requests.get(f"https://discord.com/api/v10/guilds/{guild_data['id']}/roles", headers={"Authorization":f"Bot {token}"}).json()
+
+                def create_role_frame(role_data, e=None):
+                    roles_frame = ctk.CTkFrame(frame, width=962, height=982)
+                    roles_frame.pack_propagate(0)
+                    roles_frame.place(relx=0.5, rely=0.5, anchor="center")
+
+                    def button_close_callback():
+                        roles_frame.destroy()
+                    button_close = ctk.CTkButton(roles_frame, text="X", fg_color="red", command=button_close_callback, width=50, height=30, font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                    button_close.pack(anchor="ne")
+
+                    all_roles_frame = ctk.CTkScrollableFrame(roles_frame, width=200, height=952, fg_color="#2b2d31")
+                    all_roles_frame.pack_propagate(0)
+                    all_roles_frame.pack(side="left", anchor="s")
+                    def role_button_callback(role_data):
+                        for item in settings_frame.winfo_children():
+                            item.destroy()
+                        role_name_label = ctk.CTkLabel(settings_frame, text="Role name", font=ctk.CTkFont(family="Arial", size=15, weight="bold"))
+                        role_name_label.grid()
+                        role_name_entry = ctk.CTkEntry(settings_frame, width=500, height=20, font=ctk.CTkFont(family="Arial", size=20), fg_color="#1e1f22")
+                        role_name_entry.insert(0, role_data["name"])
+                        role_name_entry.grid()
+                        def change_name_callback():
+                            reqq = requests.patch(f"https://discord.com/api/v10/guilds/{guild_data['id']}/roles/{role_data['id']}", json={"name":role_name_entry.get()}, headers={"Authorization":f"Bot {token}"}).json()
+                            try:
+                                reqq["message"]
+                                CTkMessagebox(title="Error", message=reqq["message"], icon="cancel")
+                            except:
+                                None
+                        change_name_button = ctk.CTkButton(settings_frame, text="Change role name", command=change_name_callback)
+                        change_name_button.grid()
+                    for role in req:
+                        button_role = ctk.CTkButton(all_roles_frame, text=role["name"], width=200, height=50, fg_color="#2b2d31", command=lambda role_data=role: role_button_callback(role_data=role_data))
+                        button_role.grid()
+                    settings_frame = ctk.CTkScrollableFrame(roles_frame, width=792, height=952, fg_color="#313338")
+                    settings_frame.pack_propagate(0)
+                    settings_frame.pack(side="right", anchor="s")
+                    settings_frame.columnconfigure(0, weight=1)
+
+                    role_button_callback(role_data=role_data)
+
+                for role in req:
+                    role_frame = ctk.CTkFrame(settings_frame, width=792, height=50)
+                    role_frame.grid()
+
+                    button_role = ctk.CTkButton(role_frame, text=role['name'], fg_color="#2b2d31", width=792, height=50, font=ctk.CTkFont(family="Arial", size=15))
+                    button_role.bind("<Button-1>", lambda e,role_data=role: create_role_frame(e=e, role_data=role_data))
+                    button_role.bind("<Button-3>", lambda e,guild_id=guild_data["id"],role_id=role["id"],role_button=role_frame: create_menu_role(e, guild_id=guild_id, role_id=role_id, role_button=role_button))
+                    button_role.grid()
+
+                    label_color = ctk.CTkLabel(role_frame, text="|", font=ctk.CTkFont(family="Arial", weight="bold", size=50), text_color=f"#{format(role['color'], '06x')}", height=50)
+                    label_color.grid(sticky="w", row=0)
+
+
+            button_overview = ctk.CTkButton(options_frame, text="Overview", fg_color="#2b2d31", command=button_overview_callback, width=200, height=50, font=ctk.CTkFont(family="Arial", size=15))
+            button_overview.grid()
+
+            button_roles = ctk.CTkButton(options_frame, text="Roles", fg_color="#2b2d31", command=button_roles_callback, width=200, height=50, font=ctk.CTkFont(family="Arial", size=15))
+            button_roles.grid()
+
+            button_overview_callback()
+
 
         def copy_id():
             window_program.clipboard_clear()
